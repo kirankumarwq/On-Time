@@ -1,0 +1,22 @@
+{
+    "sourceFile": "js/theme.js",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 1,
+            "patches": [
+                {
+                    "date": 1749486865000,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1749487769667,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,13 +1,4 @@\n-// Theme logic: light/dark mode toggle\r\n+// Removed theme logic: light/dark mode toggle\r\n export function initTheme() {\r\n-  const btn = document.getElementById('toggle-theme');\r\n-  if (!btn) return;\r\n-  btn.addEventListener('click', () => {\r\n-    document.body.classList.toggle('dark');\r\n-    localStorage.setItem('notion-theme', document.body.classList.contains('dark') ? 'dark' : 'light');\r\n-  });\r\n-  // Load theme from storage\r\n-  if (localStorage.getItem('notion-theme') === 'dark') {\r\n-    document.body.classList.add('dark');\r\n-  }\r\n+  // No-op\r\n }\r\n"
+                }
+            ],
+            "date": 1749486865000,
+            "name": "Commit-0",
+            "content": "// Theme logic: light/dark mode toggle\r\nexport function initTheme() {\r\n  const btn = document.getElementById('toggle-theme');\r\n  if (!btn) return;\r\n  btn.addEventListener('click', () => {\r\n    document.body.classList.toggle('dark');\r\n    localStorage.setItem('notion-theme', document.body.classList.contains('dark') ? 'dark' : 'light');\r\n  });\r\n  // Load theme from storage\r\n  if (localStorage.getItem('notion-theme') === 'dark') {\r\n    document.body.classList.add('dark');\r\n  }\r\n}\r\n"
+        }
+    ]
+}

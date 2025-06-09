@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Task Manager MVP</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>📝 Task Manager</h1>
+
+    <!-- Task Form -->
+    <form id="task-form">
+      <input type="text" id="task-input" placeholder="What needs to be done?" required />
+      <input id="task-date" type="date" />
+      <button type="submit">Add Task</button>
+    </form>
+
+    <!-- Filters -->
+    <div id="filters">
+      <button onclick="setFilter('all')" class="active">All</button>
+      <button onclick="setFilter('active')">Active</button>
+      <button onclick="setFilter('completed')">Completed</button>
+    </div>
+
+    <!-- Task List -->
+    <ul id="task-list"></ul>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

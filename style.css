@@ -1,0 +1,299 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #e6f0ff; /* subtle sky blue */
+  margin: 0;
+  padding: 2rem;
+  color: #222;
+}
+
+.container {
+  max-width: 600px;
+  margin: auto;
+  background: #fff;
+  padding: 2rem 2.5rem;
+  border-radius: 14px;
+  box-shadow: 0 6px 15px rgba(70, 130, 180, 0.15); /* steelblue shadow */
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  color: #1e3a8a; /* dark blue */
+}
+
+form {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+input[type="text"],
+input[type="date"] {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1.5px solid #a7c7ff;
+  border-radius: 8px;
+  transition: border-color 0.2s ease;
+  background-color: #f8fbff;
+  color: #1e3a8a;
+}
+
+input[type="text"]:focus,
+input[type="date"]:focus {
+  border-color: #3b82f6;
+  outline: none;
+  background-color: #e0ecff;
+}
+
+button {
+  padding: 0 1.1rem;
+  font-size: 1rem;
+  background-color: #3b82f6; /* sky blue */
+  border: none;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #2563eb; /* deeper blue */
+}
+
+#filters {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+#filters button {
+  background-color: #dbeafe; /* very light blue */
+  color: #2563eb;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  padding: 0.5rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+#filters button.active,
+#filters button:hover {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #1e40af;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+li {
+  background: #f0f7ff;
+  margin-bottom: 0.7rem;
+  padding: 1rem 1.2rem;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.12);
+}
+
+.task-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.task-main > span {
+  flex: 1;
+  font-size: 1.1rem;
+  font-weight: 600;
+  word-break: break-word;
+  color: #1e3a8a;
+}
+
+.task-main small {
+  color: #4f6d9a;
+  font-size: 0.85rem;
+  margin-left: 1rem;
+  font-style: italic;
+}
+
+.task-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  margin-left: 0.6rem;
+  color: #3b82f6;
+  transition: color 0.25s ease;
+}
+
+.task-actions button:hover {
+  color: #1e40af;
+}
+
+.subtasks {
+  background: #dbeafe;
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  margin-top: 0.6rem;
+  font-size: 0.95rem;
+  color: #1e3a8a;
+}
+
+.subtasks ul {
+  padding-left: 0;
+  margin: 0;
+}
+
+.subtasks li {
+  margin-bottom: 0.35rem;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: flex-start;
+  padding-left: 0.7rem;
+  padding-right: 0.7rem;
+  gap: 1rem;
+}
+
+.subtasks li span {
+  flex: 1 1 auto;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #1e3a8a;
+  word-break: break-word;
+  display: block;
+  white-space: normal;
+  margin-right: 1rem;
+  padding-left: 0.2rem;
+}
+
+.subtask-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.subtask-actions button {
+  font-size: 1rem;
+  color: #2563eb;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.25s ease;
+  margin-left: 0;
+}
+
+.subtask-actions button:hover {
+  color: #1e40af;
+  background: none;
+}
+
+.subtasks li.completed span {
+  text-decoration: line-through;
+  opacity: 0.5;
+  color: #2563eb;
+}
+
+.edit-subtask {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 0.5rem;
+  align-items: center;
+}
+
+.edit-subtask input[type="text"] {
+  flex: 1;
+  padding: 0.45rem 0.75rem;
+  font-size: 1rem;
+  border: 1.5px solid #a7c7ff;
+  border-radius: 8px;
+  background-color: #f8fbff;
+  color: #1e3a8a;
+  transition: border-color 0.2s ease;
+}
+
+.edit-subtask input[type="text"]:focus {
+  border-color: #3b82f6;
+  outline: none;
+  background-color: #e0ecff;
+}
+
+.edit-subtask button {
+  padding: 0.4rem 1.1rem;
+  font-size: 1rem;
+  background-color: #60a5fa; /* lighter sky blue */
+  color: white;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  white-space: nowrap;
+}
+
+.edit-subtask button:hover {
+  background-color: #2563eb;
+}
+
+/* Save Subtasks button style separate and spaced */
+#save-subtasks-btn {
+  margin-top: 0.75rem;
+  padding: 0.5rem 1.5rem;
+  background-color: #2563eb;
+  color: white;
+  font-weight: 700;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background-color 0.3s ease;
+}
+
+#save-subtasks-btn:hover {
+  background-color: #f0f7ff;
+}
+
+.edit-task-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.edit-task-actions button {
+  flex: 1;
+  padding: 0.6rem 0;
+  font-weight: 700;
+  font-size: 1rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  color: white;
+}
+
+#save-task-btn {
+  background-color: #2563eb;
+}
+
+#save-task-btn:hover {
+  background-color: #1e40af;
+}
+
+#cancel-edit-btn {
+  background-color: #ef4444;
+}
+
+#cancel-edit-btn:hover {
+  background-color: #b91c1c;
+}

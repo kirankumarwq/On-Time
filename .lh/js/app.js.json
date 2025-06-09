@@ -1,0 +1,18 @@
+{
+    "sourceFile": "js/app.js",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 0,
+            "patches": [
+                {
+                    "date": 1749486865000,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                }
+            ],
+            "date": 1749486865000,
+            "name": "Commit-0",
+            "content": "// Entry point for Notion Clone\r\nimport { initSidebar } from './sidebar.js';\r\nimport { initPage } from './page.js';\r\nimport { initTheme } from './theme.js';\r\n\r\ndocument.addEventListener('DOMContentLoaded', () => {\r\n  initTheme();\r\n  initSidebar();\r\n  initPage();\r\n});\r\n"
+        }
+    ]
+}
