@@ -1,298 +1,355 @@
+// State
+let tasks = JSON.parse(localStorage.getItem('tasks-v2') || '[]');
+let filter = 'all';
+let editingTaskIndex = null;
+let editingSubtask = { taskIdx: null, subIdx: null };
+
+// DOM
 const form = document.getElementById('task-form');
 const input = document.getElementById('task-input');
-const dateInput = document.getElementById('task-date');
-const list = document.getElementById('task-list');
-let currentFilter = 'all';
+const dueDateInput = document.getElementById('due-date');
 
-let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+dueDateInput.addEventListener('focus', (e) => {
+  e.target.type = 'date';
+});
+
+dueDateInput.addEventListener('blur', (e) => {
+  if (!e.target.value) {
+    e.target.type = 'text';
+  }
+});
+const subtaskInput = document.getElementById('subtask-input');
+const addSubtaskBtn = document.getElementById('add-subtask-btn');
+const list = document.getElementById('task-list');
+const menuBtn = document.getElementById('menu-btn');
+const menuDropdown = document.getElementById('menu-dropdown');
+
+// Modal DOM
+const modal = document.getElementById('confirm-modal');
+const modalText = document.getElementById('modal-text');
+const modalCancelBtn = document.getElementById('modal-cancel-btn');
+const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+
+let confirmCallback = null;
+
+function showModal(text, callback) {
+  modalText.textContent = text;
+  confirmCallback = callback;
+  modal.style.display = 'flex';
+  setTimeout(() => modal.classList.add('visible'), 10);
+}
+
+function hideModal() {
+  modal.classList.remove('visible');
+  setTimeout(() => {
+    modal.style.display = 'none';
+    confirmCallback = null;
+  }, 200);
+}
+
+modalCancelBtn.addEventListener('click', hideModal);
+modalConfirmBtn.addEventListener('click', () => {
+  if (confirmCallback) {
+    confirmCallback();
+  }
+  hideModal();
+});
+
+let subtasksBuffer = [];
+const subtasksBufferContainer = document.getElementById('subtasks-buffer-container');
 
 function saveTasks() {
-  localStorage.setItem('tasks', JSON.stringify(tasks));
+  localStorage.setItem('tasks-v2', JSON.stringify(tasks));
 }
 
-function allSubtasksComplete(task) {
-  return task.subtasks && task.subtasks.length > 0 && task.subtasks.every(st => st.completed);
+function clearForm() {
+  input.value = '';
+  dueDateInput.value = '';
+  subtaskInput.value = '';
+  subtasksBuffer = [];
+  renderSubtasksBuffer();
 }
 
-function updateTaskCompletionBasedOnSubtasks(index) {
-  const task = tasks[index];
-  if (allSubtasksComplete(task)) {
-    task.completed = true;
-  } else if (task.completed && !allSubtasksComplete(task)) {
-    task.completed = false;
-  }
-}
-
-function renderTasks() {
-  list.innerHTML = '';
-
-  // Attach original index to each task for correct mapping after filtering
-  const filteredTasks = tasks
-    .map((task, i) => ({ ...task, _originalIndex: i }))
-    .filter(task => {
-      if (currentFilter === 'all') return true;
-      if (currentFilter === 'active') return !task.completed;
-      if (currentFilter === 'completed') return task.completed;
-    });
-
-  filteredTasks.forEach((task) => {
-    // Sync completion status with subtasks before rendering
-    updateTaskCompletionBasedOnSubtasks(task._originalIndex);
-
-    const li = document.createElement('li');
-    li.className = task.completed ? 'completed' : '';
-
-    li.innerHTML = `
-      <div class="task-main">
-        <span>${escapeHTML(task.text)}</span>
-        ${task.dueDate ? `<small>Due: ${task.dueDate}</small>` : ''}
-        <div class="task-actions">
-          <button title="Toggle Complete" onclick="toggleTask(${task._originalIndex})">✅</button>
-          <button title="Edit Task" onclick="editTask(${task._originalIndex})">✏️</button>
-          <button title="Delete Task" onclick="deleteTask(${task._originalIndex})">🗑️</button>
-        </div>
-      </div>
-      <div class="subtasks" id="subtasks-${task._originalIndex}">
-        ${renderSubtasks(task.subtasks || [], task._originalIndex)}
-      </div>
-    `;
-
-    list.appendChild(li);
-  });
-
-  saveTasks();
-}
-
-// Escape HTML to prevent injection (basic)
 function escapeHTML(str) {
-  return str.replace(/[&<>"']/g, tag => ({
+  return str.replace(/[&<>]/g, tag => ({
     '&': '&amp;',
     '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
+    '>': '&gt;'
   }[tag]));
 }
 
-function renderSubtasks(subtasks, taskIndex) {
-  if (!subtasks.length) return '';
-
-  const items = subtasks.map((subtask, idx) => `
-    <li class="${subtask.completed ? 'completed' : ''}">
-      <span>${escapeHTML(subtask.text)}</span>
-      <div class="subtask-actions">
-        <button title="Toggle Complete" onclick="toggleSubtask(${taskIndex},${idx})">✅</button>
-        <button title="Delete Subtask" onclick="deleteSubtask(${taskIndex},${idx})">🗑️</button>
-      </div>
-    </li>
-  `).join('');
-
-  return `<ul>${items}</ul>`;
+function createTaskInput(value, onSave, onCancel) {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = value;
+  input.className = 'edit-input';
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      onSave(input.value);
+    } else if (e.key === 'Escape') {
+      onCancel();
+    }
+  };
+  input.onblur = () => onCancel();
+  setTimeout(() => input.focus(), 0);
+  return input;
 }
 
-// Add a new task
-form.addEventListener('submit', e => {
-  e.preventDefault();
+function toggleTaskComplete(idx) {
+  tasks[idx].completed = !tasks[idx].completed;
+  saveTasks();
+  renderTasks();
+}
 
-  const text = input.value.trim();
-  const dueDate = dateInput.value;
-  if (text) {
-    tasks.push({
-      text,
-      completed: false,
-      dueDate: dueDate || null,
-      subtasks: []
-    });
+function toggleSubtaskComplete(taskIdx, subIdx) {
+  tasks[taskIdx].subtasks[subIdx].completed = !tasks[taskIdx].subtasks[subIdx].completed;
+  saveTasks();
+  renderTasks();
+}
+
+function deleteTask(idx) {
+  showModal('Delete this task?', () => {
+    tasks.splice(idx, 1);
     saveTasks();
     renderTasks();
-    input.value = '';
-    dateInput.value = '';
+  });
+}
+
+function deleteSubtask(taskIdx, subIdx) {
+  showModal('Delete this subtask?', () => {
+    tasks[taskIdx].subtasks.splice(subIdx, 1);
+    saveTasks();
+    renderTasks();
+  });
+}
+
+function startEditTask(idx) {
+  editingTaskIndex = idx;
+  renderTasks();
+}
+
+function startEditSubtask(taskIdx, subIdx) {
+  editingSubtask = { taskIdx, subIdx };
+  renderTasks();
+}
+
+function renderSubtasksBuffer() {
+  subtasksBufferContainer.innerHTML = '';
+  if (subtasksBuffer.length === 0) return;
+  const ul = document.createElement('ul');
+  ul.className = 'subtasks-buffer';
+  subtasksBuffer.forEach((st, i) => {
+    const li = document.createElement('li');
+    li.className = 'subtask'; // Re-using subtask class for styling consistency
+    li.innerHTML = `<span>${escapeHTML(st)}</span> <button class="subtask-delete-btn" data-index="${i}" title="Remove subtask"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2,0,0,0,8,21H16A2,2,0,0,0,18,19V7H6V19Z"/></svg></button>`;
+    ul.appendChild(li);
+  });
+  subtasksBufferContainer.appendChild(ul);
+}
+
+addSubtaskBtn.addEventListener('click', e => {
+  e.preventDefault();
+  const val = subtaskInput.value.trim();
+  if (val) {
+    subtasksBuffer.push(val);
+    subtaskInput.value = '';
+    renderSubtasksBuffer();
   }
 });
 
-// Toggle task complete (manual toggle)
-function toggleTask(index) {
-  const task = tasks[index];
-  // If subtasks present, toggling main task manually turns subtasks off (for consistency)
-  if (task.subtasks.length > 0) {
-    task.subtasks.forEach(st => (st.completed = task.completed ? false : true));
+// Event listener for deleting buffered subtasks
+subtasksBufferContainer.addEventListener('click', e => {
+  if (e.target.closest('.subtask-delete-btn')) {
+    const btn = e.target.closest('.subtask-delete-btn');
+    const idx = +btn.getAttribute('data-index');
+    subtasksBuffer.splice(idx, 1);
+    renderSubtasksBuffer();
   }
-  task.completed = !task.completed;
-  saveTasks();
-  renderTasks();
-}
+});
 
-// Toggle subtask complete
-function toggleSubtask(taskIndex, subtaskIndex) {
-  const subtask = tasks[taskIndex].subtasks[subtaskIndex];
-  subtask.completed = !subtask.completed;
-
-  // Update main task completion accordingly
-  updateTaskCompletionBasedOnSubtasks(taskIndex);
-
-  saveTasks();
-  renderTasks();
-}
-
-// Delete task
-function deleteTask(index) {
-  tasks.splice(index, 1);
-  saveTasks();
-  renderTasks();
-}
-
-// Delete subtask
-function deleteSubtask(taskIndex, subtaskIndex) {
-  tasks[taskIndex].subtasks.splice(subtaskIndex, 1);
-  // After deleting, update main task completion
-  updateTaskCompletionBasedOnSubtasks(taskIndex);
-  saveTasks();
-  renderTasks();
-}
-
-let editingIndex = null;
-let editingSubtasksAllowed = false;
-
-// Edit task + manage subtasks
-function editTask(index) {
-  if (editingIndex !== null) {
-    alert('Please save current edit before editing another task.');
-    return;
-  }
-  editingIndex = index;
-  editingSubtasksAllowed = true;
-
-  const task = tasks[index];
-  const li = list.children[index];
-
-  li.innerHTML = `
-    <input type="text" id="edit-task-input" value="${escapeHTML(task.text)}" />
-    <input type="date" id="edit-task-date" value="${task.dueDate || ''}" />
-
-    <div class="subtasks" id="edit-subtasks-container">
-      <ul id="edit-subtasks-list">
-        ${task.subtasks.map((st, i) => `
-          <li>
-            <input type="text" class="edit-subtask-input" data-subtask-index="${i}" value="${escapeHTML(st.text)}" style="${st.completed ? 'text-decoration: line-through; opacity: 0.5;' : ''}" />
-            <button onclick="toggleSubtaskCompletedInEdit(${i})">✅</button>
-            <button onclick="deleteSubtaskInEdit(${i})">🗑️</button>
-          </li>
-        `).join('')}
-      </ul>
-      <div class="edit-subtask">
-        <input type="text" id="new-subtask-input" placeholder="Add new subtask" ${editingSubtasksAllowed ? '' : 'disabled'} />
-        <button id="add-subtask-btn" ${editingSubtasksAllowed ? '' : 'disabled'}>Add</button>
-      </div>
-      <button id="save-subtasks-btn">Save Subtasks</button>
-    </div>
-
-    <div class="edit-task-actions">
-      <button id="save-task-btn">Save Task</button>
-      <button id="cancel-edit-btn">Cancel</button>
-    </div>
-  `;
-
-  document.getElementById('add-subtask-btn').addEventListener('click', addSubtaskInEdit);
-  document.getElementById('save-subtasks-btn').addEventListener('click', saveSubtasks);
-  document.getElementById('save-task-btn').addEventListener('click', saveTaskEdit);
-  document.getElementById('cancel-edit-btn').addEventListener('click', cancelEdit);
-}
-
-// Add subtask in edit mode
-function addSubtaskInEdit(e) {
+form.addEventListener('submit', e => {
   e.preventDefault();
-  if (!editingSubtasksAllowed) return;
-
-  const input = document.getElementById('new-subtask-input');
-  const val = input.value.trim();
-  if (!val) return;
-
-  const task = tasks[editingIndex];
-  task.subtasks.push({ text: val, completed: false });
-  input.value = '';
-  renderEditSubtasks();
-}
-
-// Render subtasks list inside edit mode
-function renderEditSubtasks() {
-  const ul = document.getElementById('edit-subtasks-list');
-  const task = tasks[editingIndex];
-
-  ul.innerHTML = task.subtasks.map((st, i) => `
-    <li>
-      <input type="text" class="edit-subtask-input" data-subtask-index="${i}" value="${escapeHTML(st.text)}" style="${st.completed ? 'text-decoration: line-through; opacity: 0.5;' : ''}" />
-      <button onclick="toggleSubtaskCompletedInEdit(${i})">✅</button>
-      <button onclick="deleteSubtaskInEdit(${i})">🗑️</button>
-    </li>
-  `).join('');
-}
-
-// Toggle subtask completed in edit mode
-function toggleSubtaskCompletedInEdit(i) {
-  const task = tasks[editingIndex];
-  task.subtasks[i].completed = !task.subtasks[i].completed;
-  renderEditSubtasks();
-}
-
-// Delete subtask in edit mode
-function deleteSubtaskInEdit(i) {
-  const task = tasks[editingIndex];
-  task.subtasks.splice(i, 1);
-  renderEditSubtasks();
-}
-
-// Save subtasks: lock subtasks editing (disable adding new subtasks)
-function saveSubtasks() {
-  editingSubtasksAllowed = false;
-  document.getElementById('new-subtask-input').disabled = true;
-  document.getElementById('add-subtask-btn').disabled = true;
-  alert('Subtasks saved. You cannot add new subtasks until you edit the task again.');
-}
-
-// Save entire task edit
-function saveTaskEdit() {
-  const input = document.getElementById('edit-task-input');
-  const dateInput = document.getElementById('edit-task-date');
-  const newText = input.value.trim();
-  if (!newText) {
-    alert('Task text cannot be empty');
-    return;
-  }
-
-  tasks[editingIndex].text = newText;
-  tasks[editingIndex].dueDate = dateInput.value || null;
-
-  // Save subtasks text edits
-  const subtaskInputs = document.querySelectorAll('.edit-subtask-input');
-  subtaskInputs.forEach(inputEl => {
-    const idx = parseInt(inputEl.getAttribute('data-subtask-index'), 10);
-    tasks[editingIndex].subtasks[idx].text = inputEl.value.trim() || 'Untitled subtask';
+  const text = input.value.trim();
+  const due = dueDateInput.value;
+  if (!text) return;
+  tasks.push({
+    text,
+    dueDate: due || null,
+    completed: false,
+    subtasks: subtasksBuffer.map(st => ({ text: st, completed: false }))
   });
-
-  // Update main task completion based on subtasks
-  updateTaskCompletionBasedOnSubtasks(editingIndex);
-
   saveTasks();
-  editingIndex = null;
-  editingSubtasksAllowed = false;
+  clearForm();
   renderTasks();
-}
+});
 
-// Cancel edit and revert view
-function cancelEdit() {
-  editingIndex = null;
-  editingSubtasksAllowed = false;
-  renderTasks();
-}
+function renderTasks() {
+  list.innerHTML = '';
+  let filtered = tasks.filter(task => {
+    if (filter === 'all') return true;
+    if (filter === 'pending') return !task.completed;
+    if (filter === 'completed') return task.completed;
+  });
+  filtered.forEach((task, i) => {
+    const li = document.createElement('li');
+    li.className = 'task-item' + (task.completed ? ' task-completed' : '');
+    li.tabIndex = 0;
+    li.onmouseover = () => li.classList.add('active');
+    li.onmouseout = () => li.classList.remove('active');
 
-// Set filter
-function setFilter(filter) {
-  currentFilter = filter;
-  renderTasks();
-  document.querySelectorAll('#filters button').forEach(btn => {
-    btn.classList.toggle('active', btn.textContent.toLowerCase() === filter);
+    // Main Task Section
+    const mainTask = document.createElement('div');
+    mainTask.className = 'main-task';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'task-checkbox';
+    checkbox.checked = !!task.completed;
+    checkbox.onchange = e => { toggleTaskComplete(i); };
+
+    const content = document.createElement('div');
+    content.className = 'task-content';
+
+    if (editingTaskIndex === i) {
+      const input = createTaskInput(task.text, (newText) => {
+        tasks[i].text = newText;
+        editingTaskIndex = null;
+        saveTasks();
+        renderTasks();
+      }, () => {
+        editingTaskIndex = null;
+        renderTasks();
+      });
+      content.appendChild(input);
+    } else {
+      const title = document.createElement('span');
+      title.className = 'task-title';
+      title.textContent = task.text;
+      content.appendChild(title);
+      if (task.dueDate) {
+        const due = document.createElement('span');
+        due.className = 'task-due';
+        due.textContent = 'Due: ' + task.dueDate;
+        content.appendChild(due);
+      }
+    }
+
+    // More Options Button
+    const moreOptionsBtn = document.createElement('button');
+    moreOptionsBtn.className = 'more-options-btn';
+    moreOptionsBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12,16a2,2,0,1,1,2-2A2,2,0,0,1,12,16Zm0-6a2,2,0,1,1,2-2A2,2,0,0,1,12,10Zm0-6a2,2,0,1,1,2-2A2,2,0,0,1,12,4Z"/></svg>';
+    moreOptionsBtn.onclick = (e) => {
+      e.stopPropagation();
+      const popup = li.querySelector('.actions-popup');
+      if (popup) {
+        popup.classList.toggle('visible');
+      }
+    };
+
+    mainTask.append(checkbox, content, moreOptionsBtn);
+    li.appendChild(mainTask);
+
+    // Actions Popup
+    const actionsPopup = document.createElement('div');
+    actionsPopup.className = 'actions-popup';
+
+    const completeBtn = document.createElement('button');
+    completeBtn.className = 'action-btn complete-btn';
+    completeBtn.textContent = task.completed ? 'Uncomplete' : 'Complete';
+    completeBtn.onclick = e => { e.stopPropagation(); toggleTaskComplete(i); };
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'action-btn edit-btn';
+    editBtn.textContent = 'Edit';
+    editBtn.onclick = e => { e.stopPropagation(); startEditTask(i); actionsPopup.classList.remove('visible'); };
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'action-btn delete-btn';
+    delBtn.textContent = 'Delete';
+    delBtn.onclick = e => { e.stopPropagation(); deleteTask(i); actionsPopup.classList.remove('visible'); };
+
+    actionsPopup.append(completeBtn, editBtn, delBtn);
+    li.appendChild(actionsPopup);
+
+    // Subtasks Section
+    if (task.subtasks && task.subtasks.length) {
+      const subUl = document.createElement('ul');
+      subUl.className = 'subtasks';
+      task.subtasks.forEach((st, j) => {
+        const subLi = document.createElement('li');
+        subLi.className = 'subtask' + (st.completed ? ' subtask-completed' : '');
+
+        const subCheck = document.createElement('input');
+        subCheck.type = 'checkbox';
+        subCheck.className = 'subtask-checkbox';
+        subCheck.checked = !!st.completed;
+        subCheck.onchange = e => { toggleSubtaskComplete(i, j); };
+
+        if (editingSubtask.taskIdx === i && editingSubtask.subIdx === j) {
+          const input = createTaskInput(st.text, (newText) => {
+            tasks[i].subtasks[j].text = newText;
+            editingSubtask = { taskIdx: null, subIdx: null };
+            saveTasks();
+            renderTasks();
+          }, () => {
+            editingSubtask = { taskIdx: null, subIdx: null };
+            renderTasks();
+          });
+          subLi.append(subCheck, input);
+        } else {
+          const subText = document.createElement('span');
+          subText.textContent = st.text;
+
+          const subMoreOptionsBtn = document.createElement('button');
+          subMoreOptionsBtn.className = 'more-options-btn';
+          subMoreOptionsBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12,16a2,2,0,1,1,2-2A2,2,0,0,1,12,16Zm0-6a2,2,0,1,1,2-2A2,2,0,0,1,12,10Zm0-6a2,2,0,1,1,2-2A2,2,0,0,1,12,4Z"/></svg>';
+          subMoreOptionsBtn.onclick = (e) => {
+            e.stopPropagation();
+            const popup = subLi.querySelector('.actions-popup');
+            if (popup) {
+              popup.classList.toggle('visible');
+            }
+          };
+
+          subLi.append(subCheck, subText, subMoreOptionsBtn);
+
+          const subActionsPopup = document.createElement('div');
+          subActionsPopup.className = 'actions-popup';
+
+          const subCompleteBtn = document.createElement('button');
+          subCompleteBtn.className = 'action-btn complete-btn';
+          subCompleteBtn.textContent = st.completed ? 'Uncomplete' : 'Complete';
+          subCompleteBtn.onclick = e => { e.stopPropagation(); toggleSubtaskComplete(i, j); };
+
+          const subEdit = document.createElement('button');
+          subEdit.className = 'action-btn edit-btn';
+          subEdit.textContent = 'Edit';
+          subEdit.onclick = e => { e.stopPropagation(); startEditSubtask(i, j); subActionsPopup.classList.remove('visible'); };
+
+          const subDel = document.createElement('button');
+          subDel.className = 'action-btn delete-btn';
+          subDel.textContent = 'Delete';
+          subDel.onclick = e => { e.stopPropagation(); deleteSubtask(i, j); subActionsPopup.classList.remove('visible'); };
+
+          subActionsPopup.append(subCompleteBtn, subEdit, subDel);
+          subLi.appendChild(subActionsPopup);
+        }
+        subUl.appendChild(subLi);
+      });
+      li.appendChild(subUl);
+    }
+    list.appendChild(li);
   });
 }
 
-// Initial render
+// Close popups when clicking outside (added once)
+document.addEventListener('click', (event) => {
+  document.querySelectorAll('.actions-popup.visible').forEach(popup => {
+    // Check if the click was outside the popup and not on a more-options-btn
+    if (!popup.contains(event.target) && !event.target.closest('.more-options-btn')) {
+      popup.classList.remove('visible');
+    }
+  });
+});
+
 renderTasks();
